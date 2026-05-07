@@ -8,14 +8,11 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
-# --- Page Configuration ---
-st.set_page_config(page_title="Smart Jeevan Shala AI Agent", page_icon="🤖")
+st.set_page_config(page_title="Smart Jeevan Shala AI", page_icon="🤖")
 st.title("🤖 Smart Jeevan Shala: RAG AI Assistant")
 
-# --- Initialize RAG System ---
 @st.cache_resource
 def initialize_rag():
-    # 1. Knowledge Base
     content = """
     Smart Jeevan Shala focuses on the holistic development of students.
     One of the core modules is Financial Literacy for teenagers.
@@ -26,33 +23,30 @@ def initialize_rag():
     with open("kb.txt", "w") as f:
         f.write(content)
 
-    # 2. Process Documents
     loader = TextLoader("kb.txt")
     docs = loader.load()
     splitter = RecursiveCharacterTextSplitter(chunk_size=150, chunk_overlap=20)
     chunks = splitter.split_documents(docs)
 
-    # 3. Vector Store
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vector_store = FAISS.from_documents(chunks, embeddings)
     retriever = vector_store.as_retriever(search_kwargs={"k": 2})
 
-    # 4. Load LLM (Using 'small' version for cloud stability)
+    # Updated Model Loading logic
     model_id = "google/flan-t5-small"
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_id)
     
-    # Explicitly mentioning the task to avoid RuntimeError
+    # Task updated to "text-generation" to match your system's capabilities
     pipe = pipeline(
-        "text2text-generation", 
+        "text-generation", 
         model=model, 
         tokenizer=tokenizer, 
         max_new_tokens=100
     )
     llm = HuggingFacePipeline(pipeline=pipe)
 
-    # 5. RAG Chain
-    template = """Answer based ONLY on the context:
+    template = """Answer based ONLY on context:
     Context: {context}
     Question: {question}
     Answer:"""
@@ -67,15 +61,13 @@ def initialize_rag():
     )
     return chain
 
-# --- Execution ---
 try:
-    with st.spinner("Loading AI System..."):
+    with st.spinner("Initializing System..."):
         rag_chain = initialize_rag()
 except Exception as e:
-    st.error(f"Error during initialization: {e}")
+    st.error(f"Initialization Error: {e}")
     st.stop()
 
-# --- Chat Interface ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -90,9 +82,6 @@ if user_input := st.chat_input("Ask about the curriculum..."):
 
     with st.chat_message("assistant"):
         response = rag_chain.invoke(user_input)
-        # Extract response after 'Answer:'
         final_answer = response.split("Answer:")[-1].strip()
         st.markdown(final_answer)
         st.session_state.messages.append({"role": "assistant", "content": final_answer})
-
-st.sidebar.info("This RAG agent answers from a custom dataset.")
