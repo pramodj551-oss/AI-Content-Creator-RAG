@@ -21,7 +21,7 @@ def initialize_rag():
     content = """
     Smart Jeevan Shala focuses on the holistic development of students.
     One of the core modules is Financial Literacy for teenagers.
-    In the Financial Literacy module, students learn about saving money, basic banking, and compounding.
+    In the Financial Literacy module, students learn about saving money, basic banking, and the power of compounding.
     A good budget follows the 50-30-20 rule: 50% for needs, 30% for wants, and 20% for savings.
     Emotional Intelligence helps students manage stress and make better financial decisions.
     """
@@ -34,6 +34,69 @@ def initialize_rag():
     splitter = RecursiveCharacterTextSplitter(chunk_size=150, chunk_overlap=20)
     chunks = splitter.split_documents(docs)
 
+    # 3. Create Vector Store
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    vector_store = FAISS.from_documents(chunks, embeddings)
+    retriever = vector_store.as_retriever(search_kwargs={"k": 2})
+
+    # 4. Load LLM (Flan-T5)
+    model_id = "google/flan-t5-large"
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_id)
+    pipe = pipeline("text2text-generation", model=model, tokenizer=tokenizer, max_new_tokens=100)
+    llm = HuggingFacePipeline(pipeline=pipe)
+
+    # 5. Build Chain
+    template = """Use the following pieces of context to answer the question.
+    Context: {context}
+    Question: {question}
+    Answer:"""
+    prompt = PromptTemplate.from_template(template)
+    
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
+
+    chain = (
+        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+    return chain
+
+# Load the system
+with st.spinner("Initializing AI Agent... Please wait."):
+    rag_chain = initialize_rag()
+
+# --- Step 2: Chat Interface Logic ---
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# User Input - Corrected Indentation below
+if prompt := st.chat_input("Ask about Smart Jeevan Shala curriculum..."):
+    # Add user message to history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Generate assistant response
+    with st.chat_message("assistant"):
+        with st.spinner("Searching Knowledge Base..."):
+            response = rag_chain.invoke(prompt)
+            # Simple cleanup of the response
+            clean_response = response.split("Answer:")[-1].strip()
+            st.markdown(clean_response)
+            # Add assistant message to history
+            st.session_state.messages.append({"role": "assistant", "content": clean_response})
+
+# --- Sidebar Info ---
+st.sidebar.title("System Info")
+st.sidebar.info("This AI uses RAG (Retrieval-Augmented Generation) to prevent hallucinations by only answering from the provided dataset.")
     # 3. Create Vector Store
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vector_store = FAISS.from_documents(chunks, embeddings)
