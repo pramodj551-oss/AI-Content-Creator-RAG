@@ -11,12 +11,11 @@ from langchain_core.output_parsers import StrOutputParser
 # --- Page Configuration ---
 st.set_page_config(page_title="Smart Jeevan Shala AI Agent", page_icon="🤖")
 st.title("🤖 Smart Jeevan Shala: RAG AI Assistant")
-st.markdown("Retrieval-Augmented Generation system for Educational Content.")
 
 # --- Initialize RAG System ---
 @st.cache_resource
 def initialize_rag():
-    # 1. Create Knowledge Base
+    # 1. Knowledge Base
     content = """
     Smart Jeevan Shala focuses on the holistic development of students.
     One of the core modules is Financial Literacy for teenagers.
@@ -27,47 +26,54 @@ def initialize_rag():
     with open("kb.txt", "w") as f:
         f.write(content)
 
-    # 2. Load and Split Documents
+    # 2. Process Documents
     loader = TextLoader("kb.txt")
     docs = loader.load()
     splitter = RecursiveCharacterTextSplitter(chunk_size=150, chunk_overlap=20)
     chunks = splitter.split_documents(docs)
 
-    # 3. Create Vector Store
+    # 3. Vector Store
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vector_store = FAISS.from_documents(chunks, embeddings)
     retriever = vector_store.as_retriever(search_kwargs={"k": 2})
 
-    # 4. Load LLM (Updated to base model for stability)
-    model_id = "google/flan-t5-base"
+    # 4. Load LLM (Using 'small' version for cloud stability)
+    model_id = "google/flan-t5-small"
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_id)
     
-    # Task name removed to avoid KeyError, using direct model/tokenizer
-    pipe = pipeline(model=model, tokenizer=tokenizer, max_new_tokens=100)
+    # Explicitly mentioning the task to avoid RuntimeError
+    pipe = pipeline(
+        "text2text-generation", 
+        model=model, 
+        tokenizer=tokenizer, 
+        max_new_tokens=100
+    )
     llm = HuggingFacePipeline(pipeline=pipe)
 
-    # 5. Build RAG Chain
-    template = """Answer the question based ONLY on the context provided.
-Context: {context}
-Question: {question}
-Answer:"""
+    # 5. RAG Chain
+    template = """Answer based ONLY on the context:
+    Context: {context}
+    Question: {question}
+    Answer:"""
     prompt = PromptTemplate.from_template(template)
 
-    def format_docs(docs):
-        return "\n\n".join(doc.page_content for doc in docs)
-
     chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        {"context": retriever | (lambda docs: "\n\n".join(d.page_content for d in docs)), 
+         "question": RunnablePassthrough()}
         | prompt
         | llm
         | StrOutputParser()
     )
     return chain
 
-# --- Load System ---
-with st.spinner("Initializing AI Agent... This may take a minute."):
-    rag_chain = initialize_rag()
+# --- Execution ---
+try:
+    with st.spinner("Loading AI System..."):
+        rag_chain = initialize_rag()
+except Exception as e:
+    st.error(f"Error during initialization: {e}")
+    st.stop()
 
 # --- Chat Interface ---
 if "messages" not in st.session_state:
@@ -77,19 +83,16 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if user_input := st.chat_input("Ask about Smart Jeevan Shala curriculum..."):
+if user_input := st.chat_input("Ask about the curriculum..."):
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
-        with st.spinner("Searching..."):
-            response = rag_chain.invoke(user_input)
-            # Cleaning the response
-            clean_res = response.split("Answer:")[-1].strip()
-            st.markdown(clean_res)
-            st.session_state.messages.append({"role": "assistant", "content": clean_res})
+        response = rag_chain.invoke(user_input)
+        # Extract response after 'Answer:'
+        final_answer = response.split("Answer:")[-1].strip()
+        st.markdown(final_answer)
+        st.session_state.messages.append({"role": "assistant", "content": final_answer})
 
-# --- Sidebar ---
-st.sidebar.title("RAG System Info")
-st.sidebar.info("This AI answers based on the Smart Jeevan Shala knowledge base.")
+st.sidebar.info("This RAG agent answers from a custom dataset.")
