@@ -38,15 +38,17 @@ def initialize_rag():
     vector_store = FAISS.from_documents(chunks, embeddings)
     retriever = vector_store.as_retriever(search_kwargs={"k": 2})
 
-    # 4. Load LLM
-    model_id = "google/flan-t5-large"
+    # 4. Load LLM (Updated to base model for stability)
+    model_id = "google/flan-t5-base"
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_id)
-    pipe = pipeline("text2text-generation", model=model, tokenizer=tokenizer, max_new_tokens=100)
+    
+    # Task name removed to avoid KeyError, using direct model/tokenizer
+    pipe = pipeline(model=model, tokenizer=tokenizer, max_new_tokens=100)
     llm = HuggingFacePipeline(pipeline=pipe)
 
     # 5. Build RAG Chain
-    template = """Use the following pieces of context to answer the question.
+    template = """Answer the question based ONLY on the context provided.
 Context: {context}
 Question: {question}
 Answer:"""
@@ -64,7 +66,7 @@ Answer:"""
     return chain
 
 # --- Load System ---
-with st.spinner("Initializing AI Agent... Please wait."):
+with st.spinner("Initializing AI Agent... This may take a minute."):
     rag_chain = initialize_rag()
 
 # --- Chat Interface ---
@@ -81,12 +83,13 @@ if user_input := st.chat_input("Ask about Smart Jeevan Shala curriculum..."):
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
-        with st.spinner("Searching Knowledge Base..."):
+        with st.spinner("Searching..."):
             response = rag_chain.invoke(user_input)
-            clean_response = response.split("Answer:")[-1].strip()
-            st.markdown(clean_response)
-            st.session_state.messages.append({"role": "assistant", "content": clean_response})
+            # Cleaning the response
+            clean_res = response.split("Answer:")[-1].strip()
+            st.markdown(clean_res)
+            st.session_state.messages.append({"role": "assistant", "content": clean_res})
 
 # --- Sidebar ---
-st.sidebar.title("System Info")
-st.sidebar.info("This AI uses RAG to prevent hallucinations by only answering from the provided dataset.")
+st.sidebar.title("RAG System Info")
+st.sidebar.info("This AI answers based on the Smart Jeevan Shala knowledge base.")
