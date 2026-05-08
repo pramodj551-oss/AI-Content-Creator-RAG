@@ -221,7 +221,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 ## 📧 Contact
 
-**Suchita** — IIT Patna Applied AI & ML Program  
+**Pramod** — IIT Patna Applied AI & ML Program  
 GitHub: [@pramodj551-oss](https://github.com/pramodj551-oss)  
 For issues, please [open a GitHub Issue](https://github.com/pramodj551-oss/AI-Content-Creator-RAG/issues).
 
