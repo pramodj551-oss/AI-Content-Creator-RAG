@@ -1,8 +1,18 @@
-streamlit
-langchain
-langchain-community
-langchain-huggingface
-sentence-transformers
-faiss-cpu
-transformers
-torch
+# Core LangChain packages
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-huggingface>=0.1.0
+langchain-text-splitters>=0.3.0
+
+# Vector Store
+faiss-cpu>=1.7.4
+
+# Embeddings + LLM
+transformers>=4.40.0
+sentence-transformers>=3.0.0
+torch>=2.0.0
+
+# Notebook
+jupyter>=1.0.0
+ipykernel>=6.0.0
