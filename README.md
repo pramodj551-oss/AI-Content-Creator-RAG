@@ -1,43 +1,66 @@
 # 🧠 AI Content Creator & Auto-Researcher (RAG Agent)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
-![LangChain](https://img.shields.io/badge/LangChain-0.3+-green?logo=langchain)
-![FAISS](https://img.shields.io/badge/FAISS-Vector%20DB-orange)
-![Qwen](https://img.shields.io/badge/LLM-Qwen2.5-purple)
+![LangChain](https://img.shields.io/badge/LangChain-LCEL-green)
+![FAISS](https://img.shields.io/badge/VectorStore-FAISS-orange)
+![HuggingFace](https://img.shields.io/badge/LLM-Qwen2.5--0.5B-purple?logo=huggingface)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
 
 ## 🎯 Project Overview
 
-This project is an advanced **Retrieval-Augmented Generation (RAG)** application built for the **"Smart Jeevan Shala"** educational initiative. It acts as an intelligent AI assistant that answers user queries using context retrieved from a curated educational knowledge base — instead of relying purely on the LLM's training data.
+An end-to-end **Retrieval-Augmented Generation (RAG)** pipeline built for the **"Smart Jeevan Shala"** educational initiative. The system answers user queries about financial literacy and student development by retrieving context from a curated knowledge base — instead of hallucinating from LLM training data alone.
 
-> 💡 **Why RAG?** Large Language Models hallucinate. RAG grounds responses in your own documents, making answers accurate and traceable.
+> 💡 **Why RAG?** LLMs hallucinate. RAG grounds every answer in your own documents, making responses accurate and traceable.
 
 ---
 
 ## ✨ Features
 
-| Feature | Description |
-|--------|-------------|
-| 📄 Multi-format Ingestion | Supports PDF, TXT, and DOCX files |
-| 🔍 Semantic Search | FAISS vector store for fast similarity search |
-| 🤖 Local LLM | Runs Qwen 2.5 via HuggingFace — no OpenAI key needed |
-| 💬 Context-Aware Responses | Answers are grounded in uploaded documents |
-| 🏫 Education-Focused | Designed for Smart Jeevan Shala curriculum queries |
+| Feature | Detail |
+|--------|--------|
+| 📄 Knowledge Base | Custom text ingestion via LangChain `TextLoader` |
+| ✂️ Smart Chunking | `RecursiveCharacterTextSplitter` — chunk size 150, overlap 30 |
+| 🔍 Semantic Retrieval | FAISS vector store with `all-MiniLM-L6-v2` embeddings, top-k=2 |
+| 🤖 Local LLM | `Qwen/Qwen2.5-0.5B-Instruct` via HuggingFace (runs locally, no API key) |
+| 🔗 Modern Pipeline | Built with LCEL (LangChain Expression Language) |
+| 🛡️ Grounded Answers | Prompt-engineered to say "I don't know" if answer isn't in context |
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| LLM | Qwen/Qwen2.5-7B (HuggingFace) |
-| Framework | LangChain |
-| Vector Store | FAISS (faiss-cpu) |
-| Embeddings | sentence-transformers |
-| UI | Streamlit |
+| Layer | Library / Model |
+|-------|----------------|
+| Framework | LangChain (`langchain-core`, `langchain-community`, `langchain-huggingface`) |
+| Embeddings | `sentence-transformers/all-MiniLM-L6-v2` |
+| Vector Store | FAISS (`faiss-cpu`) |
+| LLM | `Qwen/Qwen2.5-0.5B-Instruct` (HuggingFace Transformers) |
+| Text Splitting | `langchain-text-splitters` |
 | Language | Python 3.10+ |
+
+---
+
+## 🧩 RAG Pipeline Architecture
+
+```
+Knowledge Base (TXT)
+        ↓
+TextLoader → RecursiveCharacterTextSplitter
+        ↓
+   7 Text Chunks (size=150, overlap=30)
+        ↓
+all-MiniLM-L6-v2 Embeddings → FAISS Vector Store
+        ↓
+User Query → Retriever (top-k=2 similar chunks)
+        ↓
+PromptTemplate (context + question)
+        ↓
+Qwen2.5-0.5B-Instruct (HuggingFacePipeline)
+        ↓
+StrOutputParser → Grounded Answer
+```
 
 ---
 
@@ -45,33 +68,36 @@ This project is an advanced **Retrieval-Augmented Generation (RAG)** application
 
 ```
 AI-Content-Creator-RAG/
-├── README.md
-├── requirements.txt
-├── .env.example
+├── AI_Content_Creator_RAG.ipynb   # Complete RAG pipeline (single notebook)
+├── knowledge_base.txt             # Auto-generated from notebook (Step 1)
+├── requirements.txt               # Dependencies
 ├── .gitignore
-├── notebooks/
-│   └── rag_agent.ipynb          # Main development notebook
-├── src/
-│   ├── data_loader.py           # PDF/TXT/DOCX ingestion & chunking
-│   ├── vectorizer.py            # FAISS index creation & retrieval
-│   └── agent.py                 # RAG chain + Streamlit UI
-├── data/
-│   ├── knowledge_base/          # Your uploaded documents go here
-│   └── faiss_index/             # Auto-generated vector index
-└── LICENSE
+└── README.md
 ```
+
+> 📌 The notebook is self-contained — it creates `knowledge_base.txt` automatically in Step 1.
+
+---
+
+## 📚 Knowledge Base — Smart Jeevan Shala Topics
+
+The current knowledge base covers:
+
+- 🏦 **Financial Literacy** — saving money, basic banking, power of compounding
+- 📊 **Budgeting** — the 50-30-20 rule (needs / wants / savings)
+- 🧠 **Emotional Intelligence** — managing stress, avoiding impulsive buying
+- 💰 **Compounding** — earning interest on interest for long-term wealth
+
+> To add more topics, simply extend the `knowledge_base_content` string in **Cell 1** of the notebook.
 
 ---
 
 ## ⚙️ Prerequisites
 
-Before you begin, make sure you have:
-
-- Python 3.10 or higher
-- pip (Python package manager)
-- Git
-- A HuggingFace account + API key → [Get it here](https://huggingface.co/settings/tokens)
-- Stable internet for first-time model download (~4GB)
+- Python 3.10+
+- pip
+- ~2GB disk space (for Qwen model download on first run)
+- Internet connection (first-time model download only; cached locally after)
 
 ---
 
@@ -106,85 +132,63 @@ Or install manually:
 
 ```bash
 pip install langchain langchain-community langchain-huggingface \
-            sentence-transformers faiss-cpu transformers streamlit \
-            python-dotenv pypdf docx2txt
+            langchain-text-splitters langchain-core \
+            sentence-transformers faiss-cpu transformers
 ```
 
-### 4. Set Environment Variables
-
-Create a `.env` file in the project root:
+### 4. Run the Notebook
 
 ```bash
-cp .env.example .env
+jupyter notebook AI_Content_Creator_RAG.ipynb
 ```
 
-Edit `.env` with your values:
-
-```env
-HUGGINGFACE_API_KEY=your_hf_api_key_here
-MODEL_NAME=Qwen/Qwen2.5-7B
-VECTOR_DB_PATH=./data/faiss_index
-CHUNK_SIZE=500
-CHUNK_OVERLAP=50
-```
-
-### 5. Add Your Documents
-
-Place your PDF / TXT / DOCX files inside:
-
-```
-data/knowledge_base/
-```
-
-### 6. Run the Application
-
-**Option A — Streamlit Chatbot (Recommended):**
-
-```bash
-streamlit run src/agent.py
-```
-
-**Option B — Jupyter Notebook:**
-
-```bash
-jupyter notebook notebooks/rag_agent.ipynb
-```
+Run cells in order:
+- **Cell 1** → Creates knowledge base + text chunks
+- **Cell 2** → Builds FAISS vector store
+- **Cell 3** → Loads Qwen2.5 LLM
+- **Cell 4** → Runs RAG pipeline with your question
 
 ---
 
-## 💡 Example Usage
+## 💡 Example Q&A
 
-**User Query:**
+**User Question:**
 ```
 How does Smart Jeevan Shala help students make better financial decisions?
 ```
 
-**AI Response:**
+**AI Agent Response:**
 ```
-Based on the uploaded curriculum documents:
-Emotional Intelligence is taught alongside financial literacy to help students 
-manage stress, avoid impulsive buying, and make long-term financial decisions 
-aligned with their goals.
+By teaching emotional intelligence. Smart Jeevan Shala teaches Emotional 
+Intelligence alongside Financial Literacy to help students manage stress, 
+avoid impulsive buying, and make better long-term financial decisions.
+```
 
-Source: smart_jeevan_shala_module3.pdf — Page 12
-```
+> ✅ Answer is grounded in `knowledge_base.txt` — not hallucinated.
 
 ---
 
-## 🧩 How It Works (Architecture)
+## 🔧 Customization
 
+### Change the Question
+In **Cell 4**, update:
+```python
+question = "Your custom question here"
 ```
-User Query
-    ↓
-Embedding Model (sentence-transformers)
-    ↓
-FAISS Vector Store → Top-K Similar Chunks
-    ↓
-LangChain RAG Chain
-    ↓
-Qwen 2.5 LLM
-    ↓
-Grounded Answer with Source Reference
+
+### Extend the Knowledge Base
+In **Cell 1**, add more content to:
+```python
+knowledge_base_content = """
+... existing content ...
+Your new educational content here.
+"""
+```
+
+### Tune Retrieval
+In **Cell 2**, change `k` for more/fewer retrieved chunks:
+```python
+retriever = vector_store.as_retriever(search_kwargs={"k": 3})  # default is 2
 ```
 
 ---
@@ -193,22 +197,32 @@ Grounded Answer with Source Reference
 
 | Problem | Solution |
 |---------|----------|
-| `faiss-cpu` install error | Run: `pip install faiss-cpu --no-cache-dir` |
-| Model download timeout | Check internet connection — model is ~4GB, cached after first run |
-| Out of memory error | Reduce `CHUNK_SIZE` in `.env` or use fewer documents |
-| `.env` not loading | Make sure `python-dotenv` is installed and `.env` is in root folder |
-| Streamlit port in use | Run: `streamlit run src/agent.py --server.port 8502` |
+| `faiss-cpu` install fails | Run: `pip install faiss-cpu --no-cache-dir` |
+| Qwen model download timeout | Stable internet needed; ~2GB download; cached after first run |
+| `T5ForConditionalGeneration not supported` warning | Use `text-generation` pipeline, not `text2text-generation` |
+| `max_new_tokens` vs `max_length` warning | Set only `max_new_tokens=150`, remove `max_length` |
+| Answer includes prompt text | Refine `StrOutputParser` or post-process with `.split("Answer:")[-1]` |
+| Out of memory | Switch to smaller model or reduce `max_new_tokens` |
+
+---
+
+## 🚧 Known Limitations & Future Improvements
+
+- [ ] Currently knowledge base is **hardcoded text** — add PDF/DOCX file upload support
+- [ ] Add **Streamlit UI** for interactive Q&A without running notebook
+- [ ] Replace Qwen 0.5B with larger model (Qwen2.5-7B) for better answers
+- [ ] Add **conversation memory** for multi-turn dialogue
+- [ ] Persist FAISS index to disk so it doesn't rebuild on every run
+- [ ] Add source citation (which chunk answered the question)
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome!
-
 1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m 'Add some feature'`
-4. Push to the branch: `git push origin feature/your-feature`
+2. Create your branch: `git checkout -b feature/add-pdf-support`
+3. Commit: `git commit -m 'Add PDF document ingestion'`
+4. Push: `git push origin feature/add-pdf-support`
 5. Open a Pull Request
 
 ---
@@ -221,9 +235,9 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 ## 📧 Contact
 
-**Pramod** — IIT Patna Applied AI & ML Program  
+**Suchita** — IIT Patna Applied AI & ML Program  
 GitHub: [@pramodj551-oss](https://github.com/pramodj551-oss)  
-For issues, please [open a GitHub Issue](https://github.com/pramodj551-oss/AI-Content-Creator-RAG/issues).
+For issues: [Open a GitHub Issue](https://github.com/pramodj551-oss/AI-Content-Creator-RAG/issues)
 
 ---
 
